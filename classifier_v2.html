@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ads Classifier</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #181c27; --bg3: #1f2435;
+    --border: #2a2f42; --border2: #3a4060;
+    --text: #e8eaf0; --text2: #8b91a8; --text3: #5a6080;
+    --accent: #4f8eff; --accent-dim: #1a2d52;
+    --green: #2ecc71; --green-dim: #0f3320;
+    --red: #e74c3c; --red-dim: #3a1010;
+    --yellow: #f39c12; --yellow-dim: #3a2a00;
+    --radius: 10px; --radius-sm: 6px;
+    --mono: 'Consolas', monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+  .shell { display: grid; grid-template-columns: 300px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
+  .topbar { grid-column: 1 / -1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 12px; }
+  .topbar .logo { font-size: 15px; font-weight: 600; }
+  .topbar .logo span { color: var(--accent); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); display: inline-block; }
+  .status-dot.ready { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.running { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: pulse 1s infinite; }
+  .status-dot.paused { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+  .status-label { font-size: 12px; color: var(--text2); }
+  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 20px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+  .section-title { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .field-row { display: flex; gap: 6px; align-items: center; }
+  .field input[type=text], .field input[type=password] { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 10px; color: var(--text); font-size: 13px; font-family: var(--mono); outline: none; transition: border-color 0.15s; }
+  .field input:focus { border-color: var(--accent); }
+  .field input.error { border-color: var(--red) !important; }
+  .icon-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); cursor: pointer; padding: 6px 8px; font-size: 12px; white-space: nowrap; }
+  .icon-btn:hover { border-color: var(--border2); color: var(--text); }
+  .hint { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
+  .hint a { color: var(--accent); text-decoration: none; }
+  .badge { font-size: 10px; font-weight: 600; background: var(--green-dim); color: var(--green); border-radius: 4px; padding: 1px 6px; margin-left: 6px; }
+  .upload-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius); padding: 20px 12px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .upload-zone:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .upload-zone.has-file { border-color: var(--green); background: var(--green-dim); border-style: solid; }
+  .upload-zone p { font-size: 12px; color: var(--text2); margin-top: 6px; }
+  .file-name { font-size: 12px; font-weight: 600; color: var(--green); font-family: var(--mono); }
+  .btn { width: 100%; padding: 11px; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .btn:hover:not(:disabled) { opacity: 0.85; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-blue { background: var(--accent); color: #fff; }
+  .btn-yellow { background: var(--yellow); color: #000; }
+  .btn-green { background: var(--green); color: #000; }
+  .main { overflow-y: auto; display: flex; flex-direction: column; }
+  .stats-bar { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--border); }
+  .stat-cell { padding: 16px 20px; border-right: 1px solid var(--border); }
+  .stat-cell:last-child { border-right: none; }
+  .stat-cell .num { font-size: 28px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+  .stat-cell .num.accent { color: var(--accent); }
+  .stat-cell .num.green { color: var(--green); }
+  .stat-cell .lbl { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .table-wrap { flex: 1; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); position: sticky; top: 0; z-index: 1; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--bg2); }
+  tbody td { padding: 10px 16px; color: var(--text2); vertical-align: middle; }
+  tbody td.company-name { color: var(--text); font-weight: 500; }
+  .sbadge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+  .b-pending { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+  .b-running { background: var(--yellow-dim); color: var(--yellow); }
+  .b-done    { background: var(--green-dim); color: var(--green); }
+  .b-skipped { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+  .b-error   { background: var(--red-dim); color: var(--red); }
+  .pill { display: inline-block; font-family: var(--mono); font-size: 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; color: var(--text2); }
+  .pill.has { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-dim); }
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 20px; color: var(--text3); text-align: center; }
+  .log-panel { border-top: 1px solid var(--border); background: var(--bg); min-height: 120px; max-height: 180px; overflow-y: auto; padding: 10px 16px; font-family: var(--mono); font-size: 12px; }
+  .ll { padding: 1px 0; }
+  .ll.info { color: var(--text2); }
+  .ll.ok   { color: var(--green); }
+  .ll.warn { color: var(--yellow); }
+  .ll.err  { color: var(--red); }
+  .ll .ts  { color: var(--text3); margin-right: 8px; }
+  .credits-banner { display: none; background: var(--red-dim); border: 1px solid var(--red); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: var(--red); line-height: 1.5; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="topbar">
+    <div class="logo">Ads<span>Classifier</span></div>
+    <div class="topbar-right">
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-label" id="statusLabel">Configure to begin</span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div>
+      <div class="section-title">API Key</div>
+      <div class="credits-banner" id="creditsBanner">
+        ⚠ Out of credits! Get a new key at <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--red);text-decoration:underline;">openrouter.ai/keys</a>, paste it below, then click Resume.
+      </div>
+      <div class="field">
+        <label>OpenRouter API key <span class="badge">FREE</span></label>
+        <div class="field-row">
+          <input type="password" id="orKey" placeholder="sk-or-v1-..." autocomplete="off" oninput="checkReady()" />
+          <button class="icon-btn" onclick="togglePw('orKey')">show</button>
+        </div>
+        <p class="hint">Get free key → <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></p>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Weekly ZIP file</div>
+      <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5a6080" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>Click to upload ZIP</p>
+        <p class="file-name" id="fileName" style="display:none;"></p>
+      </div>
+      <input type="file" id="fileInput" accept=".zip" style="display:none;" onchange="handleFile(this)" />
+    </div>
+
+    <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
+      <button class="btn btn-blue" id="runBtn" onclick="startRun()" disabled>▶ &nbsp;Classify &amp; Export Excel</button>
+      <button class="btn btn-yellow" id="resumeBtn" onclick="resumeRun()" style="display:none;">▶ &nbsp;Resume with new key</button>
+      <button class="btn btn-green" id="downloadBtn" onclick="downloadExcel()" style="display:none;">⬇ &nbsp;Download Excel</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="stats-bar">
+      <div class="stat-cell"><div class="num accent" id="statTotal">—</div><div class="lbl">Companies</div></div>
+      <div class="stat-cell"><div class="num green" id="statDone">0</div><div class="lbl">Classified</div></div>
+      <div class="stat-cell"><div class="num" id="statIrr">0</div><div class="lbl">Irrelevant</div></div>
+      <div class="stat-cell"><div class="num" id="statComp">0</div><div class="lbl">Competitors</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="empty-state" id="emptyState">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <p>Upload a ZIP to see companies here</p>
+      </div>
+      <table id="companyTable" style="display:none;">
+        <thead><tr>
+          <th style="width:36px;">#</th>
+          <th>Company</th>
+          <th style="width:110px;">Status</th>
+          <th style="width:95px;">Irrelevant</th>
+          <th style="width:95px;">Competitors</th>
+          <th>Note</th>
+        </tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="log-panel" id="logPanel"><div class="ll info">// Waiting for input...</div></div>
+  </main>
+
+</div>
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const MODEL = 'meta-llama/llama-3.3-70b-instruct';
+const BATCH = 100;
+const REQUEST_TIMEOUT = 25000; // 25 seconds
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let zipFile = null;
+let companies = [];
+let results = [];
+let stats = { done: 0, irr: 0, comp: 0 };
+let isRunning = false;
+let isPaused = false;
+let resumeCallback = null;
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function togglePw(id) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function ts() { const n = new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0'); }
+
+function log(msg, level) {
+  level = level || 'info';
+  const p = document.getElementById('logPanel');
+  const d = document.createElement('div');
+  d.className = 'll ' + level;
+  d.innerHTML = '<span class="ts">'+ts()+'</span>' + esc(msg);
+  p.appendChild(d);
+  p.scrollTop = p.scrollHeight;
+}
+
+function checkReady() {
+  const key = document.getElementById('orKey').value.trim();
+  const dot = document.getElementById('statusDot');
+  const lbl = document.getElementById('statusLabel');
+  if (isRunning && !isPaused) { dot.className='status-dot running'; lbl.textContent='Running...'; }
+  else if (isPaused) { dot.className='status-dot paused'; lbl.textContent='Paused — new key needed'; }
+  else if (key && zipFile) { dot.className='status-dot ready'; lbl.textContent='Ready'; }
+  else { dot.className='status-dot'; lbl.textContent='Configure to begin'; }
+  document.getElementById('runBtn').disabled = !(key && zipFile && !isRunning);
+}
+
+function setRow(i, status, irrN, compN, note) {
+  const labels = { running:'⟳ running', done:'✓ done', error:'✕ error', skipped:'— skipped' };
+  const classes = { running:'b-running', done:'b-done', error:'b-error', skipped:'b-skipped' };
+  const b = document.querySelector('#row-'+i+' .sbadge');
+  if (b) { b.className='sbadge '+(classes[status]||'b-pending'); b.textContent=labels[status]||status; }
+  if (irrN !== null) { const e=document.getElementById('irr-'+i); e.textContent=irrN; if(irrN>0) e.classList.add('has'); }
+  if (compN !== null) { const e=document.getElementById('comp-'+i); e.textContent=compN; if(e&&compN>0) e.classList.add('has'); }
+  if (note !== null) { const e=document.getElementById('note-'+i); if(e) e.textContent=note; }
+  document.getElementById('row-'+i)?.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+function updateStats() {
+  document.getElementById('statDone').textContent = stats.done;
+  document.getElementById('statIrr').textContent  = stats.irr;
+  document.getElementById('statComp').textContent = stats.comp;
+}
+
+// ── File load ─────────────────────────────────────────────────────────────────
+async function handleFile(input) {
+  if (!input.files[0]) return;
+  zipFile = input.files[0];
+  document.getElementById('dropZone').classList.add('has-file');
+  document.getElementById('fileName').textContent = zipFile.name;
+  document.getElementById('fileName').style.display = 'block';
+  log('ZIP loaded: ' + zipFile.name);
+  try {
+    const zip = await JSZip.loadAsync(zipFile);
+    companies = [];
+    for (const [path, file] of Object.entries(zip.files)) {
+      if (!path.endsWith('.xlsx') || path.startsWith('__MACOSX') || file.dir) continue;
+      const raw = path.split('/').pop().replace('.xlsx','');
+      const name = raw.replace(/_/g,' ').replace(/\s+\d{10}$/,'').trim();
+      const buf = await file.async('arraybuffer');
+      const wb = XLSX.read(buf, {type:'array'});
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      companies.push({name, rows});
+    }
+    log('Found ' + companies.length + ' companies', 'ok');
+    document.getElementById('statTotal').textContent = companies.length;
+    renderTable();
+    checkReady();
+  } catch(e) { log('Error reading ZIP: '+e.message, 'err'); }
+}
+
+function renderTable() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('companyTable').style.display = 'table';
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  companies.forEach((c,i) => {
+    const skip = c.rows.length === 0;
+    const tr = document.createElement('tr');
+    tr.id = 'row-'+i;
+    tr.innerHTML =
+      '<td style="color:var(--text3);font-family:var(--mono)">'+String(i+1).padStart(2,'0')+'</td>'+
+      '<td class="company-name">'+esc(c.name)+'</td>'+
+      '<td><span class="sbadge '+(skip?'b-skipped':'b-pending')+'">'+(skip?'— empty':'· pending')+'</span></td>'+
+      '<td><span class="pill" id="irr-'+i+'">—</span></td>'+
+      '<td><span class="pill" id="comp-'+i+'">—</span></td>'+
+      '<td style="font-size:12px;color:var(--text3)" id="note-'+i+'">'+(skip?'no data':c.rows.length+' terms')+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Geo strip ─────────────────────────────────────────────────────────────────
+function stripGeo(t) {
+  const geo = /\s+(near me|near \w+|in \w+|around \w+|local|locally|nearby|north|south|east|west|northern|southern|eastern|western|northeast|northwest|southeast|southwest|\b[a-z]{2}\b)$/gi;
+  let s = t.trim(), p;
+  do { p=s; s=s.replace(geo,'').trim(); } while(s!==p);
+  return s;
+}
+
+// ── Single API call with timeout ──────────────────────────────────────────────
+async function callAPI(termList, companyName) {
+  const key = document.getElementById('orKey').value.trim();
+  const prompt =
+    'You are a Google Ads negative keyword specialist for the company "'+companyName+'".\n\n'+
+    'From the search terms below, identify two lists:\n\n'+
+    '1. IRRELEVANT: Terms that have absolutely nothing to do with this company\'s industry, products, or services. '+
+    'Be very conservative — only flag terms that are clearly unrelated (e.g. unrelated hobbies, products, or industries). '+
+    'Do NOT flag: procedure names, treatment names, price/cost questions, industry-related questions, or anything a potential customer might search to find this type of business. '+
+    'When in doubt, leave it out. There should usually be very few irrelevant terms for established businesses.\n\n'+
+    '2. COMPETITOR: Terms that contain a competitor\'s brand name, clinic name, or doctor name. '+
+    'Only include the core competitor name — strip redundant suffixes like reviews, phone number, photos, before and after, cost, near me, and location names unless needed to distinguish between two similarly named competitors. '+
+    'No duplicates.\n\n'+
+    'Rules: all terms lowercase, no periods, no geographical terms or state abbreviations (e.g. md, va, fl, city names).\n\n'+
+    'Respond ONLY with valid JSON: {"irrelevant":[...],"competitor":[...]}\n\n'+
+    'Search terms:\n'+termList;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+  try {
+    const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key,
+        'HTTP-Referer': 'http://localhost:8080',
+        'X-Title': 'Ads Classifier'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{role:'user', content:prompt}],
+        temperature: 0.1,
+        max_tokens: 1000
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    // Out of credits — pause for new key
+    if (resp.status === 402) {
+      return { status: 'credits' };
+    }
+    // Rate limit — tell caller to wait and retry
+    if (resp.status === 429 || resp.status === 503) {
+      return { status: 'ratelimit' };
+    }
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({}));
+      return { status: 'error', msg: 'OpenRouter '+resp.status+': '+(err.error?.message||resp.statusText) };
+    }
+
+    const data = await resp.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    try {
+      const parsed = JSON.parse(clean);
+      return { status: 'ok', data: parsed };
+    } catch {
+      return { status: 'badjson', raw: clean };
+    }
+  } catch(e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') return { status: 'timeout' };
+    return { status: 'error', msg: e.message };
+  }
+}
+
+// ── Classify one company (with batching) ──────────────────────────────────────
+async function classifyCompany(c, i) {
+  const terms = c.rows.map(r => r['Search Term']).filter(Boolean);
+  const batches = [];
+  for (let b = 0; b < terms.length; b += BATCH) batches.push(terms.slice(b, b+BATCH));
+
+  const allIrr = [], allComp = [];
+
+  for (let b = 0; b < batches.length; b++) {
+    const batchLabel = batches.length > 1 ? ' (batch '+(b+1)+'/'+batches.length+')' : '';
+    let attempts = 0;
+
+    while (true) {
+      attempts++;
+      if (attempts > 8) throw new Error('Too many retries');
+
+      const res = await callAPI(batches[b].join('\n'), c.name);
+
+      if (res.status === 'ok') {
+        if (Array.isArray(res.data.irrelevant)) allIrr.push(...res.data.irrelevant);
+        if (Array.isArray(res.data.competitor))  allComp.push(...res.data.competitor);
+        log('['+c.name+'] Batch '+(b+1)+'/'+batches.length+' done', 'ok');
+        break;
+      }
+      if (res.status === 'credits') {
+        // Pause — wait for user to paste new key and click resume
+        isPaused = true;
+        document.getElementById('creditsBanner').style.display = 'block';
+        document.getElementById('resumeBtn').style.display = 'block';
+        document.getElementById('orKey').classList.add('error');
+        checkReady();
+        log('['+c.name+'] Out of credits — paste new key and click Resume', 'err');
+        await new Promise(resolve => { resumeCallback = resolve; });
+        isPaused = false;
+        document.getElementById('creditsBanner').style.display = 'none';
+        document.getElementById('resumeBtn').style.display = 'none';
+        document.getElementById('orKey').classList.remove('error');
+        checkReady();
+        log('Resuming...', 'ok');
+        continue; // retry same batch with new key
+      }
+      if (res.status === 'ratelimit') {
+        const wait = Math.min(15 * attempts, 60);
+        log('['+c.name+'] Rate limited'+batchLabel+', waiting '+wait+'s...', 'warn');
+        await new Promise(r => setTimeout(r, wait * 1000));
+        continue;
+      }
+      if (res.status === 'timeout') {
+        log('['+c.name+'] Timed out'+batchLabel+', retrying...', 'warn');
+        await new Promise(r => setTimeout(r, 3000));
+        continue;
+      }
+      if (res.status === 'badjson') {
+        log('['+c.name+'] Bad JSON'+batchLabel+', retrying...', 'warn');
+        await new Promise(r => setTimeout(r, 3000));
+        continue;
+      }
+      // Hard error
+      throw new Error(res.msg || 'Unknown error');
+    }
+
+    // Small pause between batches
+    if (b < batches.length - 1) await new Promise(r => setTimeout(r, 2000));
+  }
+
+  return {
+    irrelevant: [...new Set(allIrr)].map(t => stripGeo(String(t).toLowerCase())).filter(Boolean),
+    competitor:  [...new Set(allComp)].map(t => stripGeo(String(t).toLowerCase())).filter(Boolean)
+  };
+}
+
+// ── Resume ────────────────────────────────────────────────────────────────────
+function resumeRun() {
+  if (resumeCallback) { resumeCallback(); resumeCallback = null; }
+}
+
+// ── Excel export ──────────────────────────────────────────────────────────────
+function downloadExcel() {
+  const wb = XLSX.utils.book_new();
+  for (const r of results) {
+    const name = String(r.name).replace(/['"\\[\]*?:/]/g,'').substring(0,31);
+    const rows = [['Irrelevant','Competition']];
+    const max = Math.max(r.irrelevant.length, r.competitor.length);
+    for (let i=0; i<max; i++) rows.push([
+      r.irrelevant[i] || '',
+      r.competitor[i] || ''
+    ]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), name);
+  }
+  XLSX.writeFile(wb, 'Ads_Results_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  log('Excel downloaded!', 'ok');
+}
+
+// ── Main run ──────────────────────────────────────────────────────────────────
+async function startRun() {
+  if (isRunning) return;
+  isRunning = true;
+  results = [];
+  stats = {done:0, irr:0, comp:0};
+  updateStats();
+  document.getElementById('logPanel').innerHTML = '';
+  document.getElementById('downloadBtn').style.display = 'none';
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  checkReady();
+  const keyCheck = document.getElementById('orKey').value.trim();
+  if (!keyCheck) {
+    log('ERROR: No API key entered!', 'err');
+    isRunning = false;
+    btn.disabled = false;
+    checkReady();
+    return;
+  }
+  log('── Started: '+companies.length+' companies ──');
+  log('Using key: '+keyCheck.substring(0,12)+'...', 'info');
+
+  for (let i = 0; i < companies.length; i++) {
+    const c = companies[i];
+    if (!c.rows || c.rows.length === 0) {
+      setRow(i, 'skipped', '—', '—', 'no data');
+      log('['+c.name+'] Skipped — no terms', 'warn');
+      continue;
+    }
+
+    setRow(i, 'running', null, null, 'classifying '+c.rows.length+' terms...');
+    log('['+c.name+'] Starting ('+c.rows.length+' terms)...');
+
+    try {
+      const out = await classifyCompany(c, i);
+      results.push({name: c.name, irrelevant: out.irrelevant, competitor: out.competitor});
+      stats.done++; stats.irr += out.irrelevant.length; stats.comp += out.competitor.length;
+      updateStats();
+      setRow(i, 'done', out.irrelevant.length, out.competitor.length, out.irrelevant.length+' irr, '+out.competitor.length+' comp');
+      log('['+c.name+'] ✓ '+out.irrelevant.length+' irrelevant, '+out.competitor.length+' competitor', 'ok');
+    } catch(e) {
+      setRow(i, 'error', '—', '—', e.message);
+      log('['+c.name+'] ERROR: '+e.message, 'err');
+    }
+
+    if (i < companies.length - 1) await new Promise(r => setTimeout(r, 3000));
+  }
+
+  log('── Done: '+stats.done+'/'+companies.length+' classified ──', 'ok');
+  if (results.length > 0) {
+    document.getElementById('downloadBtn').style.display = 'block';
+    log('Click Download Excel to get your results!', 'ok');
+  }
+  isRunning = false;
+  btn.disabled = false;
+  checkReady();
+}
+</script>
+</body>
+</html>
