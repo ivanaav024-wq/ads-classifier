@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQ Cleanup — Setup Instructions</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f5f8; color: #1a1a2e; font-size: 15px; line-height: 1.6; padding: 40px 20px 80px; }
+  .page { max-width: 700px; margin: 0 auto; }
+
+  .header { background: #1a237e; color: #fff; border-radius: 14px; padding: 32px 36px 28px; margin-bottom: 28px; }
+  .header-tag { font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: #90caf9; margin-bottom: 10px; }
+  .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+  .header p { color: #c5cae9; font-size: 14px; line-height: 1.75; }
+
+  .summary-box { background: #fff; border: 1px solid #e0e4f0; border-radius: 12px; padding: 20px 24px; margin-bottom: 28px; }
+  .summary-box h2 { font-size: 13px; font-weight: 700; color: #1a237e; margin-bottom: 14px; letter-spacing: .04em; text-transform: uppercase; }
+  .summary-row { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f0f2f8; font-size: 13px; }
+  .summary-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .summary-num { background: #1a237e; color: #fff; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .summary-text { color: #3d3d6e; line-height: 1.5; }
+  .summary-text strong { color: #1a1a2e; }
+
+  .step { background: #fff; border: 1px solid #e0e4f0; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+  .step-header { display: flex; align-items: center; gap: 16px; padding: 16px 22px; background: #fafbff; border-bottom: 1px solid #f0f2f8; cursor: pointer; user-select: none; }
+  .step-header:hover { background: #f3f5ff; }
+  .step-num { width: 34px; height: 34px; border-radius: 50%; background: #1a237e; color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step-title { font-size: 16px; font-weight: 600; color: #1a1a2e; }
+  .step-subtitle { font-size: 12px; color: #7a84a0; margin-top: 2px; }
+  .step-chevron { margin-left: auto; color: #7a84a0; font-size: 18px; transition: transform .2s; }
+  .step.open .step-chevron { transform: rotate(180deg); }
+  .step-body { padding: 22px; display: none; }
+  .step.open .step-body { display: block; }
+
+  .instructions { list-style: none; }
+  .instructions li { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f4f5f8; font-size: 14px; color: #2d2d4e; align-items: flex-start; line-height: 1.65; }
+  .instructions li:last-child { border-bottom: none; padding-bottom: 0; }
+  .bullet { width: 24px; height: 24px; border-radius: 50%; background: #e8eaf6; color: #3949ab; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+
+  code { background: #eef0fb; border: 1px solid #d0d5f0; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 12.5px; color: #1a237e; white-space: nowrap; }
+  .url-box { background: #f0f3ff; border: 1px solid #c5cff5; border-radius: 7px; padding: 10px 14px; font-family: 'Courier New', monospace; font-size: 12px; color: #1a237e; margin: 10px 0; word-break: break-all; line-height: 1.7; }
+  .send-box { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 13px 16px; font-size: 13px; color: #5d4037; margin-top: 14px; line-height: 1.7; }
+  .send-box strong { color: #e65100; }
+  .note { background: #e3f2fd; border-left: 4px solid #1976d2; border-radius: 0 7px 7px 0; padding: 10px 14px; font-size: 13px; color: #0d47a1; margin-top: 12px; line-height: 1.6; }
+  .warning { background: #fff3e0; border-left: 4px solid #f57c00; border-radius: 0 7px 7px 0; padding: 10px 14px; font-size: 13px; color: #bf360c; margin-top: 12px; line-height: 1.6; }
+
+  .code-block-wrap { position: relative; margin: 12px 0; }
+  .code-block { background: #1a1a2e; color: #c5cae9; border-radius: 8px; padding: 16px; font-family: 'Courier New', monospace; font-size: 11.5px; line-height: 1.8; overflow-x: auto; white-space: pre; max-height: 300px; overflow-y: auto; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; background: #3949ab; color: #fff; border: none; border-radius: 5px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: 'Segoe UI', sans-serif; transition: background .15s; z-index: 1; }
+  .copy-btn:hover { background: #283593; }
+  .copy-btn.copied { background: #1b5e20; }
+
+  .done-box { background: #1a237e; color: #fff; border-radius: 14px; padding: 30px 36px; margin-top: 28px; text-align: center; }
+  .done-box h2 { font-size: 22px; margin-bottom: 10px; }
+  .done-box p { color: #c5cae9; font-size: 14px; line-height: 1.7; }
+  .done-checklist { list-style: none; margin: 18px auto 0; text-align: left; display: inline-block; }
+  .done-checklist li { font-size: 14px; color: #e8eaf6; padding: 5px 0; }
+  .done-checklist li::before { content: "✓ "; color: #69f0ae; font-weight: 700; }
+
+  @media print {
+    .step-body { display: block !important; }
+    .step-chevron { display: none; }
+    .step-header { cursor: default; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="header-tag">SQ Cleanup · One-time setup</div>
+  <h1>Setup instructions</h1>
+  <p>This sets up the automated ads classifier. Once done, the app reads Excel files from your Drive every Monday at 8am, classifies the search terms using AI, writes the results directly to Google Sheets, and emails you a summary — without anyone needing to do anything.<br><br>
+  <strong style="color:#fff;">This only needs to be done once. It takes about 20 minutes.</strong></p>
+</div>
+
+<div class="summary-box">
+  <h2>What you will do in these 7 steps</h2>
+  <div class="summary-row"><div class="summary-num">1</div><div class="summary-text">Open the <strong>sq-cleanup</strong> project in Google Cloud Console</div></div>
+  <div class="summary-row"><div class="summary-num">2</div><div class="summary-text">Enable <strong>two APIs</strong> — Google Sheets and Gemini (the AI)</div></div>
+  <div class="summary-row"><div class="summary-num">3</div><div class="summary-text">Create a free <strong>Gemini API key</strong> — what powers the AI classification</div></div>
+  <div class="summary-row"><div class="summary-num">4</div><div class="summary-text">Configure the <strong>sign-in screen</strong> — so only you and your nephew can use the app</div></div>
+  <div class="summary-row"><div class="summary-num">5</div><div class="summary-text">Create an <strong>OAuth Client ID</strong> — tells Google the website is allowed to show a sign-in button</div></div>
+  <div class="summary-row"><div class="summary-num">6</div><div class="summary-text">Find your <strong>Automation folder ID</strong> from the Drive URL</div></div>
+  <div class="summary-row"><div class="summary-num">7</div><div class="summary-text">Paste and deploy the <strong>backend script</strong> — this holds the keys and does all the work on Google's servers</div></div>
+</div>
+
+<!-- STEP 1 -->
+<div class="step open" onclick="toggleStep(this)">
+  <div class="step-header">
+    <div class="step-num">1</div>
+    <div><div class="step-title">Open the sq-cleanup project</div><div class="step-subtitle">Google Cloud Console · 1 minute</div></div>
+    <div class="step-chevron">▾</div>
+  </div>
+  <div class="step-body">
+    <ul class="instructions">
+      <li><div class="bullet">→</div><div>Open this in your browser:<div class="url-box">https://console.cloud.google.com</div></div></li>
+      <li><div class="bullet">→</div><div>Sign in with your Google account if asked.</div></li>
+      <li><div class="bullet">→</div><div>At the top of the page there is a project dropdown. Click it and select <strong>sq-cleanup</strong>.</div></li>
+    </ul>
+  </div>
+</div>
+
+<!-- STEP 2 -->
+<div class="step" onclick="toggleStep(this)">
+  <div class="step-header">
+    <div class="step-num">2</div>
+    <div><div class="step-title">Enable two APIs</div><div class="step-subtitle">Google Sheets API + Gemini API · 3 minutes</div></div>
+    <div class="step-chevron">▾</div>
+  </div>
+  <div class="step-body">
+    <p style="font-size:13px;color:#666;margin-bottom:16px;">You already enabled Google Drive API previously — that one is done. We need two more.</p>
+    <ul class="instructions">
+      <li><div class="bullet">A</div><div>In the left sidebar click <strong>APIs &amp; Services</strong> → <strong>Library</strong>. Search for <strong>Google Sheets API</strong>, click it, then click the blue <strong>Enable</strong> button.</div></li>
+      <li><div class="bullet">B</div><div>Go back to the Library. Search for <strong>Generative Language API</strong> (this is Gemini, Google's AI). Click it, then click <strong>Enable</strong>.</div></li>
+    </ul>
+    <div class="note">✓ Google Drive API is already enabled — no need to touch it.</div>
+  </div>
+</div>
+
+<!-- STEP 3 -->
+<div class="step" onclick="toggleStep(this)">
+  <div class="step-header">
+    <div class="step-num">3</div>
+    <div><div class="step-title">Create a Gemini API key</div><div class="step-subtitle">The free AI key · 2 minutes</div></div>
+    <div class="step-chevron">▾</div>
+  </div>
+  <div class="step-body">
+    <ul class="instructions">
+      <li><div class="bullet">→</div><div>In the left sidebar click <strong>APIs &amp; Services</strong> → <strong>Credentials</strong>.</div></li>
+      <li><div class="bullet">→</div><div>Click <strong>+ Create Credentials</strong> → <strong>API key</strong>. A key appears — it starts with <code>AIza</code>. Copy it and save it in a notes app.</div></li>
+      <li><div class="bullet">→</div><div>Click the pencil icon next to the new key → under "API restrictions" select <strong>Restrict key</strong> → choose <strong>Generative Language API</strong> → click <strong>Save</strong>. This limits the key to only the AI.</div></li>
+    </ul>
+    <div class="note">Keep this key safe — you paste it into the script in Step 7. You do <strong>not</strong> send it to your nephew. It stays inside the script on Google's servers.</div>
+  </div>
+</div>
+
+<!-- STEP 4 -->
+<div class="step" onclick="toggleStep(this)">
+  <div class="step-header">
+    <div class="step-num">4</div>
+    <div><div class="step-title">Set up the sign-in screen</div><div class="step-subtitle">OAuth consent screen · 4 minutes</div></div>
+    <div class="step-chevron">▾</div>
+  </div>
+  <div class="step-body">
+    <p style="font-size:13px;color:#666;margin-bottom:16px;">This controls who is allowed to sign into the app with their Google account.</p>
+    <ul class="instructions">
+      <li><div class="bullet">→</div><div>In the left sidebar click <strong>APIs &amp; Services</strong> → <strong>OAuth consent screen</strong>.</div></li>
+      <li><div class="bullet">→</div><div>Select <strong>External</strong> → click <strong>Create</strong>.</div></li>
+      <li><div class="bullet">→</div><div>Fill in only these three fields:<br><br>• App name: <code>SQ Cleanup Classifier</code><br>• User support email: <em>your email</em><br>• Developer contact email: <em>your email</em><br><br>Scroll down and click <strong>Save and Continue</strong>.</div></li>
+      <li><div class="bullet">→</div><div>On the <strong>Scopes</strong> page: click <strong>Add or Remove Scopes</strong>. In the filter box type <code>userinfo.email</code> and tick the checkbox next to it. Click <strong>Update</strong> → <strong>Save and Continue</strong>.</div></li>
+      <li><div class="bullet">→</div><div>On the <strong>Test users</strong> page: click <strong>+ Add Users</strong>. Add your own email and your nephew's email. Click <strong>Add</strong> → <strong>Save and Continue</strong> → <strong>Back to Dashboard</strong>.</div></li>
+    </ul>
+    <div class="note">The app stays in "Testing" mode — that is intentional. Only the two emails you added can ever sign in.</div>
+  </div>
+</div>
+
+<!-- STEP 5 -->
+<div class="step" onclick="toggleStep(this)">
+  <div class="step-header">
+    <div class="step-num">5</div>
+    <div><div class="step-title">Create an OAuth Client ID</div><div class="step-subtitle">Allows the website to show a Google sign-in button · 2 minutes</div></div>
+    <div class="step-chevron">▾</div>
+  </div>
+  <div class="step-body">
+    <ul class="instructions">
+      <li><div class="bullet">→</div><div>In the left sidebar click <strong>APIs &amp; Services</strong> → <strong>Credentials</strong>.</div></li>
+      <li><div class="bullet">→</div><div>Click <strong>+ Create Credentials</strong> → <strong>OAuth client ID</strong>.</div></li>
+      <li><div class="bullet">→</div><div>Application type: <strong>Web application</strong>. Name: <code>SQ Cleanup Web App</code>.</div></li>
+      <li><div class="bullet">→</div><div>Under <strong>Authorised JavaScript origins</strong> click <strong>+ Add URI</strong> and paste exactly:<div class="url-box">https://ivanaav024-wq.github.io</div></div></li>
+      <li><div class="bullet">→</div><div>Click <strong>Create</strong>. A popup shows your <strong>Client ID</strong> — a long string ending in <code>.apps.googleusercontent.com</code>. Copy it and save it alongside the Gemini key.</div></li>
+    </ul>
+    <div class="send-box"><strong>📩 You will send this to your nephew at the end of Step 7.</strong> Keep it saved for now.</div>
+  </div>
+</div>
+
+<!-- STEP 6 -->
+<div class="step" onclick="toggleStep(this)">
+  <div class="step-header">
+    <div class="step-num">6</div>
+    <div><div class="step-title">Find your Automation folder ID</div><div class="step-subtitle">From the Drive URL · 1 minute</div></div>
+    <div class="step-chevron">▾</div>
+  </div>
+  <div class="step-body">
+    <ul class="instructions">
+      <li><div class="bullet">→</div><div>Open Google Drive and navigate to your <strong>Automation</strong> folder — the one that contains the weekly Excel files.</div></li>
+      <li><div class="bullet">→</div><div>Look at the URL bar. It looks like:<div class="url-box">https://drive.google.com/drive/folders/<strong>1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74</strong></div>The bold part after <code>/folders/</code> is the <strong>Folder ID</strong>. Copy it and save it.</div></li>
+    </ul>
+  </div>
+</div>
+
+<!-- STEP 7 -->
+<div class="step" onclick="toggleStep(this)">
+  <div class="step-header">
+    <div class="step-num">7</div>
+    <div><div class="step-title">Deploy the backend script</div><div class="step-subtitle">Holds all keys, does all the work on Google's servers · 8 minutes</div></div>
+    <div class="step-chevron">▾</div>
+  </div>
+  <div class="step-body">
+    <p style="font-size:13px;color:#666;margin-bottom:16px;">This script runs entirely on Google's servers. Your nephew's browser never sees the Gemini key. The script reads the Excel files from Drive, calls the AI, writes results to Sheets, and sends the email summary. You paste it once and never touch it again.</p>
+    <ul class="instructions">
+      <li><div class="bullet">A</div><div>Open this in a new tab:<div class="url-box">https://script.google.com</div>Click <strong>New project</strong> (top left).</div></li>
+      <li><div class="bullet">B</div><div>A code editor opens with some placeholder text already in it. Click inside it, press <strong>Ctrl+A</strong> (Cmd+A on Mac) to select everything, then press <strong>Delete</strong>. The editor should now be completely empty.</div></li>
+      <li>
+        <div class="bullet">C</div>
+        <div>
+          Click the <strong>Copy code</strong> button below, then click inside the empty editor and press <strong>Ctrl+V</strong> (Cmd+V on Mac) to paste.
+          <div class="code-block-wrap">
+            <button class="copy-btn" onclick="copyCode(this); event.stopPropagation();">Copy code</button>
+            <div class="code-block" id="script-code">// ================================================================
+// SQ CLEANUP — ADS CLASSIFIER BACKEND
+// Google Apps Script
+// ================================================================
+
+const CONFIG = {
+  GEMINI_API_KEY:       'PASTE_YOUR_GEMINI_KEY_HERE',
+  AUTOMATION_FOLDER_ID: 'PASTE_YOUR_FOLDER_ID_HERE',
+  OUTPUT_SHEET_ID:      '',
+  OUTPUT_TAB_NAME:      'SQ Cleanup',
+  ALLOWED_EMAILS:       ['your@email.com', 'nephews@email.com'],
+};
+
+const SYSTEM_PROMPT = `You are a Google Ads search term classifier for a digital marketing agency.
+Classify each search term as IRRELEVANT, COMPETITOR, or KEEP.
+
+IRRELEVANT: wrong intent, wrong audience, generic/unrelated — will never convert.
+COMPETITOR: clearly names or strongly implies a direct competitor brand.
+KEEP: relevant, branded, or has conversion potential — do NOT classify these.
+
+Be conservative. When in doubt, use KEEP. It is worse to remove a good term than keep a bad one.
+Respond ONLY with valid JSON, no extra text, no markdown.`;
+
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const userEmail = body.userEmail || '';
+    if (!CONFIG.ALLOWED_EMAILS.includes(userEmail)) {
+      return jsonResponse({ ok: false, error: 'Unauthorised: ' + userEmail });
+    }
+    if (body.action === 'list_files')    return jsonResponse(listFiles());
+    if (body.action === 'classify_file') return jsonResponse(classifyFile(body.fileId, body.company));
+    if (body.action === 'write_results') return jsonResponse(writeResults(body.results));
+    if (body.action === 'full_run')      return jsonResponse(fullRun());
+    return jsonResponse({ ok: false, error: 'Unknown action' });
+  } catch (err) {
+    return jsonResponse({ ok: false, error: err.message });
+  }
+}
+
+function doGet() {
+  return jsonResponse({ ok: true, message: 'SQ Cleanup backend is running.' });
+}
+
+function listFiles() {
+  const folder = DriveApp.getFolderById(CONFIG.AUTOMATION_FOLDER_ID);
+  const files = [];
+  const it = folder.getFilesByType(MimeType.MICROSOFT_EXCEL);
+  while (it.hasNext()) { const f = it.next(); files.push({ id: f.getId(), name: f.getName() }); }
+  const it2 = folder.getFilesByType('application/vnd.ms-excel');
+  while (it2.hasNext()) { const f = it2.next(); if (!files.find(x => x.id === f.getId())) files.push({ id: f.getId(), name: f.getName() }); }
+  files.sort((a, b) => a.name.localeCompare(b.name));
+  return { ok: true, files };
+}
+
+function classifyFile(fileId, company) {
+  const terms = parseExcelFile(fileId);
+  if (!terms.length) return { ok: true, company, irrelevant: [], competitors: [], totalTerms: 0 };
+  const irrelevant = [], competitors = [];
+  const BATCH = 25;
+  for (let i = 0; i < terms.length; i += BATCH) {
+    const res = callGemini(terms.slice(i, i + BATCH), company);
+    for (const r of res) {
+      if (r.label === 'IRRELEVANT') irrelevant.push(r.term);
+      else if (r.label === 'COMPETITOR') competitors.push(r.term);
+    }
+    Utilities.sleep(4000);
+  }
+  return { ok: true, company, irrelevant, competitors, totalTerms: terms.length };
+}
+
+function fullRun() {
+  const { files } = listFiles();
+  const allResults = {};
+  for (const file of files) {
+    const company = file.name.replace(/\.(xlsx?|csv)$/i, '').replace(/[_-]/g, ' ').trim();
+    try {
+      const r = classifyFile(file.id, company);
+      allResults[company] = { irrelevant: r.irrelevant, competitors: r.competitors };
+    } catch (err) {
+      allResults[company] = { irrelevant: [], competitors: [], error: err.message };
+    }
+  }
+  writeResults(allResults);
+  return { ok: true, results: allResults };
+}
+
+function writeResults(results) {
+  const companies = Object.keys(results);
+  if (!companies.length) return { ok: false, error: 'No results' };
+  let sheetId = CONFIG.OUTPUT_SHEET_ID ||
+    PropertiesService.getScriptProperties().getProperty('OUTPUT_SHEET_ID');
+  if (!sheetId) {
+    const weekStr = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd');
+    const ss = SpreadsheetApp.create('SQ Cleanup — ' + weekStr);
+    sheetId = ss.getId();
+    PropertiesService.getScriptProperties().setProperty('OUTPUT_SHEET_ID', sheetId);
+  }
+  const ss = SpreadsheetApp.openById(sheetId);
+  let sheet = ss.getSheetByName(CONFIG.OUTPUT_TAB_NAME);
+  if (!sheet) sheet = ss.insertSheet(CONFIG.OUTPUT_TAB_NAME);
+  sheet.clearContents(); sheet.clearFormats();
+  const maxRows = Math.max(1, ...companies.map(c =>
+    Math.max((results[c].irrelevant||[]).length, (results[c].competitors||[]).length)));
+  const row1 = ['#'], row2 = ['#'];
+  for (const co of companies) { row1.push(co, ''); row2.push('Irrelevant', 'Competitor'); }
+  const data = [row1, row2];
+  for (let r = 0; r < maxRows; r++) {
+    const row = [r + 1];
+    for (const co of companies) {
+      row.push((results[co].irrelevant||[])[r]||'', (results[co].competitors||[])[r]||'');
+    }
+    data.push(row);
+  }
+  const lastCol = 1 + companies.length * 2;
+  sheet.getRange(1, 1, data.length, data[0].length).setValues(data);
+  sheet.setFrozenRows(2); sheet.setFrozenColumns(1);
+  sheet.getRange(1, 1, 1, lastCol).setBackground('#1a237e').setFontColor('#fff').setFontWeight('bold');
+  for (let c = 0; c < companies.length; c++) {
+    sheet.getRange(2, 2+c*2).setBackground('#1b5e20').setFontColor('#fff').setFontWeight('bold');
+    sheet.getRange(2, 3+c*2).setBackground('#b71c1c').setFontColor('#fff').setFontWeight('bold');
+  }
+  sheet.autoResizeColumns(1, lastCol);
+  const sheetUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId;
+  return { ok: true, sheetId, sheetUrl, rowsWritten: data.length };
+}
+
+function parseExcelFile(fileId) {
+  const tempId = Drive.Files.copy({ title: '_temp' }, fileId, { convert: true }).id;
+  const tempSS = SpreadsheetApp.openById(tempId);
+  try {
+    const data = tempSS.getSheets()[0].getDataRange().getValues();
+    if (data.length < 2) return [];
+    const headers = data[0].map(h => String(h).toLowerCase());
+    let col = headers.findIndex(h =>
+      h.includes('search term') || h.includes('keyword') || h.includes('query'));
+    if (col === -1) col = 0;
+    return data.slice(1).map(r => String(r[col]||'').trim()).filter(t => t.length > 0);
+  } finally {
+    DriveApp.getFileById(tempSS.getId()).setTrashed(true);
+  }
+}
+
+function callGemini(terms, company) {
+  const prompt = SYSTEM_PROMPT + '\n\nCompany: ' + company + '\n\nSearch terms:\n' +
+    terms.map((t,i) => (i+1)+'. '+t).join('\n') +
+    '\n\nJSON only: {"results":[{"term":"...","label":"IRRELEVANT"|"COMPETITOR"|"KEEP"}]}';
+  const r = UrlFetchApp.fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+CONFIG.GEMINI_API_KEY,
+    { method:'post', contentType:'application/json', muteHttpExceptions:true,
+      payload: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1,maxOutputTokens:2048}}) }
+  );
+  if (r.getResponseCode() !== 200) throw new Error('Gemini error: ' + r.getContentText());
+  try {
+    const text = JSON.parse(r.getContentText()).candidates[0].content.parts[0].text;
+    return JSON.parse(text.replace(/```json|```/g,'')).results || [];
+  } catch(e) { return []; }
+}
+
+function scheduledWeeklyRun() {
+  try {
+    const result = fullRun();
+    const companies = Object.keys(result.results||{});
+    const totalIrrel = companies.reduce((s,c)=>s+(result.results[c].irrelevant?.length||0),0);
+    const totalComp  = companies.reduce((s,c)=>s+(result.results[c].competitors?.length||0),0);
+    MailApp.sendEmail({
+      to: CONFIG.ALLOWED_EMAILS.join(','),
+      subject: '✅ SQ Cleanup — Weekly Run Complete',
+      body: 'Classification finished.\n\nCompanies: '+companies.length+
+            '\nIrrelevant terms: '+totalIrrel+'\nCompetitor terms: '+totalComp+
+            '\n\nOpen results:\n'+(result.sheetUrl||'')
+    });
+  } catch(err) {
+    MailApp.sendEmail({to:CONFIG.ALLOWED_EMAILS[0],subject:'❌ SQ Cleanup — Run Failed',body:'Error: '+err.message});
+  }
+}
+
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+}</div>
+          </div>
+        </div>
+      </li>
+      <li><div class="bullet">D</div><div>Near the top of the pasted code, find the <code>CONFIG</code> section and fill in your values:<br><br>• <code>PASTE_YOUR_GEMINI_KEY_HERE</code> → the <code>AIza...</code> key from Step 3<br>• <code>PASTE_YOUR_FOLDER_ID_HERE</code> → the folder ID from Step 6<br>• <code>your@email.com</code> → your email address<br>• <code>nephews@email.com</code> → your nephew's email address<br><br>Leave <code>OUTPUT_SHEET_ID: ''</code> exactly as it is — the script creates a new sheet automatically.</div></li>
+      <li><div class="bullet">E</div><div>Press <strong>Ctrl+S</strong> (Cmd+S on Mac) to save. When it asks for a project name type <code>SQ Cleanup Backend</code> and click <strong>OK</strong>.</div></li>
+      <li><div class="bullet">F</div><div>The script needs one extra service enabled. In the left sidebar click the <strong>+</strong> icon next to <strong>Services</strong>. Find <strong>Drive API</strong> in the list, click it, then click <strong>Add</strong>.</div></li>
+      <li><div class="bullet">G</div><div>Click the blue <strong>Deploy</strong> button (top right) → <strong>New deployment</strong>. Click the gear/cog icon next to "Select type" and choose <strong>Web app</strong>. Set:<br><br>• Execute as: <strong>Me</strong><br>• Who has access: <strong>Anyone with a Google Account</strong><br><br>Click <strong>Deploy</strong>. A permissions popup appears — click <strong>Authorise access</strong>, select your Google account, and click <strong>Allow</strong> on everything. This is expected — you are giving the script permission to use your own Drive and Sheets.</div></li>
+      <li><div class="bullet">H</div><div>After deploying you will see a <strong>Web app URL</strong>:<div class="url-box">https://script.google.com/macros/s/AKfycbx.../exec</div>Copy this URL and save it alongside the Client ID from Step 5.</div></li>
+      <li><div class="bullet">I</div><div><strong>Set up the Monday 8am schedule:</strong><br><br>In the left sidebar click the <strong>clock icon</strong> (Triggers). Click <strong>+ Add Trigger</strong> (bottom right).<br><br>• Function to run: <code>scheduledWeeklyRun</code><br>• Event source: <strong>Time-driven</strong><br>• Type: <strong>Week timer</strong><br>• Day: <strong>Monday</strong><br>• Time: <strong>8am to 9am</strong><br><br>Click <strong>Save</strong>. Authorise again if prompted. That is it — it will run every Monday morning and email both of you the results.</div></li>
+    </ul>
+    <div class="warning"><strong>Note for future updates:</strong> if the script code is ever changed, you must re-deploy it. Click Deploy → <strong>Manage deployments</strong> → pencil icon → change version to <strong>New version</strong> → Deploy. Otherwise the app keeps running the old code.</div>
+    <div class="send-box">
+      <strong>📩 You are done. Send your nephew exactly these two things:</strong><br><br>
+      1. The <strong>Client ID</strong> from Step 5 — the string ending in <code>.apps.googleusercontent.com</code><br>
+      2. The <strong>Web app URL</strong> from Step 7H — the link starting with <code>https://script.google.com/macros/s/</code>
+    </div>
+  </div>
+</div>
+
+<div class="done-box">
+  <h2>Setup complete 🎉</h2>
+  <p>Send your nephew those two things and the app is fully live.<br>No API keys in the browser. No copy-pasting ever again.<br>Every Monday at 8am it runs itself and emails both of you the results.</p>
+  <ul class="done-checklist">
+    <li>Client ID &nbsp;·&nbsp; ends with <code style="background:#ffffff22;color:#fff;border:none;padding:1px 5px;">.apps.googleusercontent.com</code></li>
+    <li>Web app URL &nbsp;·&nbsp; <code style="background:#ffffff22;color:#fff;border:none;padding:1px 5px;">https://script.google.com/macros/s/.../exec</code></li>
+  </ul>
+</div>
+
+</div>
+<script>
+function toggleStep(el) {
+  if (event.target.closest('.copy-btn')) return;
+  el.classList.toggle('open');
+}
+function copyCode(btn) {
+  navigator.clipboard.writeText(document.getElementById('script-code').textContent).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy code'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+</script>
+</body>
+</html>
