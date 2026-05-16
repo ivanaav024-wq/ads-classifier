@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQ Cleanup — Ads Classifier v4</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1f2435;
+    --border: #2a3048;
+    --border2: #3a4468;
+    --accent: #4f7cff;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --text: #e8ecf4;
+    --muted: #7a84a0;
+    --font: 'DM Mono', 'Fira Mono', monospace;
+    --sans: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; min-height: 100vh; }
+
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding:0 28px; height:56px; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:100; }
+  .logo { font-family:var(--font); font-size:13px; letter-spacing:.08em; color:var(--accent); display:flex; align-items:center; gap:8px; }
+  .logo-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .topbar-right { display:flex; align-items:center; gap:12px; }
+
+  .main { display:grid; grid-template-columns:300px 1fr; min-height:calc(100vh - 56px); }
+  .sidebar { border-right:1px solid var(--border); background:var(--surface); padding:24px 20px; display:flex; flex-direction:column; gap:20px; overflow-y:auto; }
+  .content { padding:24px; overflow-x:auto; }
+
+  .section-title { font-family:var(--font); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+
+  .card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:16px; }
+
+  input[type="text"], input[type="password"] { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font); font-size:12px; padding:9px 12px; outline:none; transition:border-color .15s; }
+  input[type="text"]:focus { border-color:var(--accent); }
+  label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
+
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:9px 16px; border-radius:7px; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:all .15s; width:100%; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:not(:disabled):hover { background:#3d6be0; }
+  .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .btn-ghost:not(:disabled):hover { color:var(--text); border-color:var(--border2); }
+  .btn-green { background:#16603a; color:var(--green); border:1px solid #22c55e44; }
+  .btn-green:not(:disabled):hover { background:#1a7044; }
+
+  .google-btn { display:flex; align-items:center; gap:10px; background:#fff; color:#3c4043; border:1px solid #dadce0; border-radius:7px; padding:9px 16px; font-size:13px; font-weight:500; cursor:pointer; width:100%; transition:box-shadow .15s; font-family:var(--sans); }
+  .google-btn:hover { box-shadow:0 2px 8px #0006; }
+  .google-logo { width:18px; height:18px; flex-shrink:0; }
+
+  .badge { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:11px; font-family:var(--font); }
+  .badge-green { background:#16603a44; color:var(--green); border:1px solid #22c55e33; }
+  .badge-red { background:#6b141444; color:var(--red); border:1px solid #ef444433; }
+  .badge-amber { background:#6b4a0a44; color:var(--amber); border:1px solid #f59e0b33; }
+  .badge-blue { background:#1a2e6b44; color:#7da8ff; border:1px solid #4f7cff33; }
+
+  .log { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; font-family:var(--font); font-size:11px; color:var(--muted); height:180px; overflow-y:auto; line-height:1.7; }
+  .log .ok { color:var(--green); }
+  .log .err { color:var(--red); }
+  .log .info { color:var(--accent); }
+
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+  .stat { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .stat-val { font-size:22px; font-weight:600; font-family:var(--font); color:var(--text); }
+  .stat-label { font-size:11px; color:var(--muted); margin-top:2px; }
+
+  .company-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .company-table th { text-align:left; font-family:var(--font); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--border); }
+  .company-table td { padding:7px 8px; border-bottom:1px solid var(--border); }
+  .company-table tr:last-child td { border-bottom:none; }
+
+  .output-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+  .output-table { border-collapse:collapse; font-size:12px; white-space:nowrap; font-family:var(--font); }
+  .output-table th { background:var(--surface2); padding:8px 14px; border:1px solid var(--border); font-size:10px; letter-spacing:.08em; color:var(--muted); position:sticky; top:0; }
+  .output-table th.company-header { background:#1a2e6b; color:#7da8ff; border-top:2px solid var(--accent); font-size:11px; }
+  .output-table th.irrel-header { background:#16603a; color:var(--green); }
+  .output-table th.comp-header { background:#6b141466; color:var(--red); }
+  .output-table td { padding:6px 14px; border:1px solid var(--border); color:var(--text); }
+  .output-table td.irrel-cell { color:var(--muted); }
+  .output-table td.comp-cell { color:#ff8080; }
+  .output-table tr:nth-child(even) td { background:#ffffff05; }
+
+  .setup-notice { background:#1a2e6b33; border:1px solid var(--accent); border-radius:8px; padding:12px 14px; font-size:12px; color:#7da8ff; line-height:1.7; }
+
+  .hidden { display:none !important; }
+  .mt-8 { margin-top:8px; }
+  .mt-12 { margin-top:12px; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    SQ&nbsp;CLEANUP&nbsp;/&nbsp;ADS&nbsp;CLASSIFIER&nbsp;<span style="color:var(--muted)">v4</span>
+  </div>
+  <div class="topbar-right">
+    <span id="auth-badge" class="badge badge-red">● not signed in</span>
+    <button class="google-btn" id="signin-btn" onclick="handleSignIn()">
+      <svg class="google-logo" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="user-info" class="hidden" style="display:flex;align-items:center;gap:10px;">
+      <span id="user-name" style="font-size:12px;color:var(--muted)"></span>
+      <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:12px;" onclick="handleSignOut()">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="sidebar">
+
+    <!-- STEP 1: Sign in -->
+    <div>
+      <div class="section-title">1 · Sign in</div>
+      <div class="card">
+        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;">
+          Sign in with your Google account. The app uses your uncle's <strong style="color:var(--text)">sq-cleanup</strong> project — no API keys needed.
+        </p>
+        <button class="google-btn" onclick="handleSignIn()">
+          <svg class="google-logo" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Sign in with Google
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Script URL (one-time setup only) -->
+    <div>
+      <div class="section-title">2 · Backend URL <span style="color:var(--green);font-size:9px;">one-time setup</span></div>
+      <div class="card">
+        <label>Apps Script web app URL</label>
+        <input type="text" id="script-url" value="https://script.google.com/macros/s/AKfycbzN-YVyaWuIWn4Hb1TWNFSK_HtX6zFFou6O-I8F8vE-6nh-r5S0XCO-ZWedORNJ1ahhsQ/exec" />
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6;">
+          Paste once — saved automatically. Get this from your uncle after he deploys the script.
+        </p>
+      </div>
+    </div>
+
+    <!-- OUTPUT SHEET -->
+    <div>
+      <div class="section-title">3 · Output sheet <span style="color:var(--muted);font-size:9px;">optional</span></div>
+      <div class="card">
+        <label>Google Sheet ID or URL <span style="color:var(--muted)">(blank = create new)</span></label>
+        <input type="text" id="sheet-id" placeholder="Auto-created if blank" />
+      </div>
+    </div>
+
+    <!-- RUN -->
+    <div>
+      <button class="btn btn-primary" id="run-btn" onclick="startRun()" disabled>
+        ▶ Classify &amp; Write to Sheets
+      </button>
+      <button class="btn btn-ghost mt-8 hidden" id="stop-btn" onclick="stopRun()">
+        ■ Stop
+      </button>
+    </div>
+
+    <!-- SCHEDULE INFO -->
+    <div class="card" style="padding:12px 14px;">
+      <div style="font-family:var(--font);font-size:10px;letter-spacing:.1em;color:var(--muted);margin-bottom:6px;">AUTO-SCHEDULE</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.7;">
+        🕗 Runs automatically<br>
+        <span style="color:var(--muted)">Monday 8:00 AM EST</span><br>
+        <span style="color:var(--muted)">Results emailed when done</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="content">
+
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="s-companies">—</div><div class="stat-label">Companies</div></div>
+      <div class="stat"><div class="stat-val" id="s-classified">0</div><div class="stat-label">Terms classified</div></div>
+      <div class="stat"><div class="stat-val" id="s-irrel" style="color:var(--muted)">0</div><div class="stat-label">Irrelevant</div></div>
+      <div class="stat"><div class="stat-val" id="s-comp" style="color:var(--red)">0</div><div class="stat-label">Competitors</div></div>
+    </div>
+
+    <div class="section-title">Company progress</div>
+    <div class="card" style="margin-bottom:20px;padding:0;overflow:hidden;">
+      <table class="company-table" id="progress-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Company</th><th>Status</th>
+            <th>Terms</th><th>Irrelevant</th><th>Competitors</th>
+          </tr>
+        </thead>
+        <tbody id="progress-tbody">
+          <tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px;">Sign in and click Run to start</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Log</div>
+    <div class="log" id="log">// Waiting for input...<br></div>
+
+    <div id="output-section" class="hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px;">
+        <div class="section-title" style="margin:0;">Output preview — all companies, scroll →</div>
+        <div style="display:flex;gap:8px;">
+          <a id="sheet-link" href="#" target="_blank" class="hidden">
+            <button class="btn btn-green" style="width:auto;padding:7px 14px;">↗ Open in Google Sheets</button>
+          </a>
+        </div>
+      </div>
+      <div class="output-wrap">
+        <table class="output-table"><thead id="output-head"></thead><tbody id="output-body"></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG — only the Client ID lives here (not secret, just an ID)
+// Everything else (Gemini key, folder ID) lives in Apps Script
+// ═══════════════════════════════════════════════════════════════
+const CLIENT_ID = '69572624903-86dm0uc6odlfoe814oj2bcktrll4kitf.apps.googleusercontent.com';
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let gToken = null;
+let gUser  = null;
+let stopped = false;
+let results = {};
+
+// ═══════════════════════════════════════════════════════════════
+// LOGGING
+// ═══════════════════════════════════════════════════════════════
+function log(msg, type='') {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = type;
+  const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  line.textContent = `[${ts}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE AUTH — only needs Drive (to confirm identity)
+// The script URL is called with the user's email for auth
+// ═══════════════════════════════════════════════════════════════
+function handleSignIn() {
+  if (!CLIENT_ID || CLIENT_ID.startsWith('REPLACE')) {
+    alert('The app needs to be configured with your Client ID. See setup instructions.');
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/userinfo.email',
+    callback: (resp) => {
+      if (resp.error) { log('Auth error: ' + resp.error, 'err'); return; }
+      gToken = resp.access_token;
+      fetchUserInfo();
+    }
+  });
+  client.requestAccessToken();
+}
+
+async function fetchUserInfo() {
+  const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: 'Bearer ' + gToken }
+  });
+  gUser = await r.json();
+  document.getElementById('signin-btn').classList.add('hidden');
+  document.getElementById('user-info').classList.remove('hidden');
+  document.getElementById('user-name').textContent = gUser.email;
+  document.getElementById('auth-badge').className = 'badge badge-green';
+  document.getElementById('auth-badge').textContent = '● ' + gUser.email;
+  document.getElementById('run-btn').disabled = false;
+  log('Signed in as ' + gUser.email, 'ok');
+}
+
+function handleSignOut() {
+  gToken = null; gUser = null;
+  document.getElementById('signin-btn').classList.remove('hidden');
+  document.getElementById('user-info').classList.add('hidden');
+  document.getElementById('auth-badge').className = 'badge badge-red';
+  document.getElementById('auth-badge').textContent = '● not signed in';
+  document.getElementById('run-btn').disabled = true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CALL APPS SCRIPT BACKEND
+// ═══════════════════════════════════════════════════════════════
+async function callBackend(action, extra = {}) {
+  const scriptUrl = document.getElementById('script-url').value.trim();
+  if (!scriptUrl) throw new Error('Paste the Apps Script URL in Step 2 first.');
+
+  const body = { action, userEmail: gUser?.email || '', ...extra };
+
+  const r = await fetch(scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // Apps Script requires text/plain for POST
+    body: JSON.stringify(body),
+    redirect: 'follow'
+  });
+
+  if (!r.ok) throw new Error('Backend error: ' + r.status);
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'Unknown backend error');
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN RUN
+// ═══════════════════════════════════════════════════════════════
+async function startRun() {
+  if (!gUser) { log('Sign in first.', 'err'); return; }
+
+  stopped = false; results = {};
+  document.getElementById('run-btn').classList.add('hidden');
+  document.getElementById('stop-btn').classList.remove('hidden');
+  document.getElementById('output-section').classList.add('hidden');
+
+  try {
+    // 1. Get file list from backend
+    log('Fetching file list from Drive…', 'info');
+    const { files } = await callBackend('list_files');
+    log(`Found ${files.length} files.`, 'ok');
+    document.getElementById('s-companies').textContent = files.length;
+    renderProgressTable(files);
+
+    let totalIrrel = 0, totalComp = 0, totalTerms = 0;
+
+    // 2. Classify each file
+    for (let i = 0; i < files.length; i++) {
+      if (stopped) { log('Stopped by user.', 'err'); break; }
+      const file = files[i];
+      const company = file.name.replace(/\.(xlsx?|csv)$/i,'').replace(/[_-]/g,' ').trim();
+      updateRow(i, 'running');
+      log(`Classifying: ${company}…`, 'info');
+
+      try {
+        const data = await callBackend('classify_file', { fileId: file.id, company });
+        results[company] = { irrelevant: data.irrelevant, competitors: data.competitors };
+        totalIrrel += data.irrelevant.length;
+        totalComp  += data.competitors.length;
+        totalTerms += data.totalTerms || 0;
+        updateRow(i, 'done', data.totalTerms, data.irrelevant.length, data.competitors.length);
+        document.getElementById('s-classified').textContent = totalTerms;
+        document.getElementById('s-irrel').textContent = totalIrrel;
+        document.getElementById('s-comp').textContent  = totalComp;
+        log(`  ✓ ${data.irrelevant.length} irrelevant, ${data.competitors.length} competitor`, 'ok');
+      } catch(e) {
+        updateRow(i, 'error');
+        log(`  Error: ${e.message}`, 'err');
+      }
+    }
+
+    if (stopped) return;
+
+    // 3. Write results to Sheets via backend
+    log('Writing results to Google Sheets…', 'info');
+    const sheetIdInput = document.getElementById('sheet-id').value.trim();
+    const writeData = await callBackend('write_results', {
+      results,
+      outputSheetId: sheetIdInput || ''
+    });
+
+    log(`✓ Done! Sheet: ${writeData.sheetUrl}`, 'ok');
+
+    // Show link
+    document.getElementById('sheet-link').href = writeData.sheetUrl;
+    document.getElementById('sheet-link').classList.remove('hidden');
+
+    renderOutputTable();
+    document.getElementById('output-section').classList.remove('hidden');
+
+  } catch(e) {
+    log('Error: ' + e.message, 'err');
+  } finally {
+    document.getElementById('run-btn').classList.remove('hidden');
+    document.getElementById('stop-btn').classList.add('hidden');
+  }
+}
+
+function stopRun() {
+  stopped = true;
+  document.getElementById('run-btn').classList.remove('hidden');
+  document.getElementById('stop-btn').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROGRESS TABLE
+// ═══════════════════════════════════════════════════════════════
+function renderProgressTable(files) {
+  const tbody = document.getElementById('progress-tbody');
+  tbody.innerHTML = files.map((f,i) => {
+    const name = f.name.replace(/\.(xlsx?|csv)$/i,'').replace(/[_-]/g,' ').trim();
+    return `<tr id="row-${i}">
+      <td style="color:var(--muted)">${i+1}</td>
+      <td>${name}</td>
+      <td><span class="badge badge-blue" id="status-${i}">waiting</span></td>
+      <td id="terms-${i}" style="color:var(--muted)">—</td>
+      <td id="irrel-${i}" style="color:var(--muted)">—</td>
+      <td id="comp-${i}" style="color:var(--red)">—</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateRow(i, status, terms, irrel, comp) {
+  const badges = { waiting:'badge-blue', running:'badge-amber', done:'badge-green', error:'badge-red' };
+  const s = document.getElementById(`status-${i}`);
+  if (s) { s.className = `badge ${badges[status]||'badge-blue'}`; s.textContent = status; }
+  if (terms !== undefined) document.getElementById(`terms-${i}`).textContent = terms;
+  if (irrel !== undefined) document.getElementById(`irrel-${i}`).textContent = irrel;
+  if (comp  !== undefined) document.getElementById(`comp-${i}`).textContent  = comp;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OUTPUT PREVIEW TABLE
+// ═══════════════════════════════════════════════════════════════
+function renderOutputTable() {
+  const companies = Object.keys(results);
+  const thead = document.getElementById('output-head');
+  const tbody = document.getElementById('output-body');
+
+  let h1 = '<tr><th style="position:sticky;left:0;z-index:2;background:var(--surface2);">#</th>';
+  let h2 = '<tr><th style="position:sticky;left:0;z-index:2;background:var(--surface2);"></th>';
+  for (const co of companies) {
+    h1 += `<th class="company-header" colspan="2">${co}</th>`;
+    h2 += `<th class="irrel-header">Irrelevant</th><th class="comp-header">Competitor</th>`;
+  }
+  thead.innerHTML = h1 + '</tr>' + h2 + '</tr>';
+
+  const maxRows = Math.max(1, ...companies.map(co =>
+    Math.max(results[co].irrelevant.length, results[co].competitors.length)
+  ));
+
+  let html = '';
+  for (let r = 0; r < maxRows; r++) {
+    html += `<tr><td style="color:var(--muted);position:sticky;left:0;background:var(--surface);">${r+1}</td>`;
+    for (const co of companies) {
+      const irr = results[co].irrelevant[r] || '';
+      const cmp = results[co].competitors[r] || '';
+      html += `<td class="irrel-cell">${esc(irr)}</td><td class="comp-cell">${esc(cmp)}</td>`;
+    }
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Persist script URL across sessions
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('scriptUrl');
+  if (saved) document.getElementById('script-url').value = saved;
+  const savedSheet = localStorage.getItem('sheetId');
+  if (savedSheet) document.getElementById('sheet-id').value = savedSheet;
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'script-url') localStorage.setItem('scriptUrl', e.target.value);
+  if (e.target.id === 'sheet-id')   localStorage.setItem('sheetId',   e.target.value);
+});
+</script>
+</body>
+</html>
